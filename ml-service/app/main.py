@@ -6,7 +6,7 @@ from datetime import datetime
 import os
 
 from app.core.config import settings
-from app.api.routes import predictions, analytics
+from app.api.routes import predictions, analytics, reports
 
 # Create FastAPI app
 app = FastAPI(
@@ -39,6 +39,7 @@ async def health_check():
 # Include API routes
 app.include_router(predictions.router, prefix="/api/predictions", tags=["predictions"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
+app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
 
 # Global exception handler
 @app.exception_handler(Exception)

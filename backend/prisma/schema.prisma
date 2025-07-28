@@ -35,6 +35,55 @@ enum ProductStatus {
   DISCONTINUED
 }
 
+enum ProductType {
+  GENERAL
+  PESTICIDE
+  FERTILIZER
+  HERBICIDE
+  FUNGICIDE
+  INSECTICIDE
+  SEED
+  EQUIPMENT
+}
+
+enum RegulatoryStatus {
+  APPROVED
+  PENDING
+  RESTRICTED
+  BANNED
+  EXPIRED
+}
+
+enum ApplicationMethod {
+  SPRAY
+  GRANULAR
+  LIQUID
+  POWDER
+  INJECTION
+  BROADCAST
+  FOLIAR
+}
+
+enum ToxicityLevel {
+  LOW
+  MODERATE
+  HIGH
+  EXTREMELY_HIGH
+}
+
+enum CropType {
+  CEREALS
+  VEGETABLES
+  FRUITS
+  LEGUMES
+  OILSEEDS
+  COTTON
+  SUGARCANE
+  SPICES
+  FLOWERS
+  FODDER
+}
+
 model User {
   id          String   @id @default(cuid())
   email       String   @unique
@@ -96,8 +145,10 @@ model Product {
   barcode       String?       @unique
   categoryId    String
   supplierId    String?
-  unitPrice     Decimal       @db.Decimal(10, 2)
-  costPrice     Decimal       @db.Decimal(10, 2)
+  unitPrice     Decimal       @db.Decimal(10, 2) // Retail/selling price
+  costPrice     Decimal       @db.Decimal(10, 2) // Cost/purchase price
+  wholesalePrice Decimal?     @db.Decimal(10, 2) // Wholesale price for bulk orders
+  mrp           Decimal?      @db.Decimal(10, 2) // Maximum Retail Price
   quantity      Int           @default(0)
   minStockLevel Int           @default(0)
   maxStockLevel Int?
@@ -105,6 +156,25 @@ model Product {
   imageUrl      String?
   weight        Decimal?      @db.Decimal(8, 3)
   dimensions    String?
+
+  // Pesticide/Fertilizer specific fields
+  productType       ProductType       @default(GENERAL)
+  regulatoryStatus  RegulatoryStatus?
+  registrationNumber String?          @unique
+  activeIngredients Json?             // Array of active ingredients with percentages
+  applicationMethod ApplicationMethod?
+  toxicityLevel     ToxicityLevel?
+  targetCrops       CropType[]
+  applicationRate   String?           // e.g., "2-3 ml per liter"
+  prehiInterval     Int?              // Pre-harvest interval in days
+  reentryInterval   Int?              // Re-entry interval in hours
+  expiryDate        DateTime?
+  batchNumber       String?
+  manufacturingDate DateTime?
+  storageConditions String?
+  safetyWarnings    String?
+  antidoteInfo      String?
+
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
@@ -116,6 +186,8 @@ model Product {
   returnItems      ReturnItem[]
   priceHistory     PriceHistory[]
   predictions      ProductPrediction[]
+  safetyDataSheet  SafetyDataSheet?
+  complianceRecords ComplianceRecord[]
 
   @@map("products")
 }
@@ -165,6 +237,15 @@ model Customer {
   email     String?  @unique
   phone     String?
   address   String?
+
+  // Farming profile fields
+  farmSize        Decimal?  @db.Decimal(10, 2) // in acres/hectares
+  farmLocation    String?
+  primaryCrops    CropType[]
+  farmingType     String?   // ORGANIC, CONVENTIONAL, MIXED
+  licenseNumber   String?   // Pesticide license if required
+  licenseExpiry   DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -318,4 +399,79 @@ model SystemSetting {
   updatedAt DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+model SafetyDataSheet {
+  id                String   @id @default(cuid())
+  productId         String   @unique
+  documentUrl       String?
+  hazardSymbols     String[] // Array of hazard symbols
+  firstAidMeasures  String?
+  fireFightingMeasures String?
+  accidentalRelease String?
+  handlingStorage   String?
+  exposureControls  String?
+  physicalProperties Json?
+  stabilityReactivity String?
+  toxicologicalInfo String?
+  ecologicalInfo    String?
+  disposalInfo      String?
+  transportInfo     String?
+  regulatoryInfo    String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("safety_data_sheets")
+}
+
+model ComplianceRecord {
+  id              String   @id @default(cuid())
+  productId       String
+  regulatoryBody  String   // EPA, FDA, etc.
+  certificateNumber String?
+  issueDate       DateTime
+  expiryDate      DateTime?
+  status          RegulatoryStatus
+  documentUrl     String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("compliance_records")
+}
+
+model WeatherData {
+  id            String   @id @default(cuid())
+  location      String
+  date          DateTime
+  temperature   Decimal  @db.Decimal(5, 2)
+  humidity      Decimal  @db.Decimal(5, 2)
+  rainfall      Decimal  @db.Decimal(8, 2)
+  windSpeed     Decimal? @db.Decimal(5, 2)
+  pressure      Decimal? @db.Decimal(8, 2)
+  createdAt     DateTime @default(now())
+
+  @@map("weather_data")
+}
+
+model CropCalendar {
+  id            String   @id @default(cuid())
+  cropType      CropType
+  region        String
+  plantingStart DateTime
+  plantingEnd   DateTime
+  harvestStart  DateTime
+  harvestEnd    DateTime
+  peakSeason    String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("crop_calendar")
 }
