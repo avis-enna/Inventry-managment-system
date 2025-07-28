@@ -1,0 +1,23 @@
+{
+  "admin": {
+    "email": "admin@inventory.com",
+    "password": "admin123",
+    "role": "ADMIN",
+    "firstName": "Admin",
+    "lastName": "User"
+  },
+  "sales": {
+    "email": "sales@inventory.com",
+    "password": "admin123",
+    "role": "SALES",
+    "firstName": "Sales",
+    "lastName": "Person"
+  },
+  "inventory": {
+    "email": "inventory@inventory.com",
+    "password": "admin123",
+    "role": "INVENTORY",
+    "firstName": "Inventory",
+    "lastName": "Manager"
+  }
+}

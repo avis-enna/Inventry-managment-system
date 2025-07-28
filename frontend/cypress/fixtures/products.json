@@ -1,0 +1,47 @@
+[
+  {
+    "id": "product-1",
+    "name": "Laptop Pro 15\"",
+    "sku": "LAP-PRO-15-001",
+    "unitPrice": "1299.99",
+    "quantity": 25,
+    "category": {
+      "id": "cat-1",
+      "name": "Electronics"
+    },
+    "supplier": {
+      "id": "sup-1",
+      "name": "Tech Supplier"
+    }
+  },
+  {
+    "id": "product-2",
+    "name": "Wireless Mouse",
+    "sku": "MOU-WIR-001",
+    "unitPrice": "49.99",
+    "quantity": 150,
+    "category": {
+      "id": "cat-1",
+      "name": "Electronics"
+    },
+    "supplier": {
+      "id": "sup-1",
+      "name": "Tech Supplier"
+    }
+  },
+  {
+    "id": "product-3",
+    "name": "Mechanical Keyboard",
+    "sku": "KEY-MEC-001",
+    "unitPrice": "129.99",
+    "quantity": 75,
+    "category": {
+      "id": "cat-1",
+      "name": "Electronics"
+    },
+    "supplier": {
+      "id": "sup-1",
+      "name": "Tech Supplier"
+    }
+  }
+]

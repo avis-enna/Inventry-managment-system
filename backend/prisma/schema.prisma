@@ -1,0 +1,321 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  INVENTORY
+  SALES
+}
+
+enum TransactionType {
+  SALE
+  RETURN
+  ADJUSTMENT
+  RESTOCK
+}
+
+enum ReturnStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  username    String   @unique
+  firstName   String
+  lastName    String
+  role        UserRole
+  password    String
+  isActive    Boolean  @default(true)
+  lastLogin   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  sales           Sale[]
+  returnRequests  ReturnRequest[]
+  auditLogs       AuditLog[]
+  notifications   Notification[]
+
+  @@map("users")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  products Product[]
+
+  @@map("categories")
+}
+
+model Supplier {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+  address     String?
+  contactPerson String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  products Product[]
+
+  @@map("suppliers")
+}
+
+model Product {
+  id            String        @id @default(cuid())
+  name          String
+  description   String?
+  sku           String        @unique
+  barcode       String?       @unique
+  categoryId    String
+  supplierId    String?
+  unitPrice     Decimal       @db.Decimal(10, 2)
+  costPrice     Decimal       @db.Decimal(10, 2)
+  quantity      Int           @default(0)
+  minStockLevel Int           @default(0)
+  maxStockLevel Int?
+  status        ProductStatus @default(ACTIVE)
+  imageUrl      String?
+  weight        Decimal?      @db.Decimal(8, 3)
+  dimensions    String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  category         Category           @relation(fields: [categoryId], references: [id])
+  supplier         Supplier?          @relation(fields: [supplierId], references: [id])
+  saleItems        SaleItem[]
+  stockMovements   StockMovement[]
+  returnItems      ReturnItem[]
+  priceHistory     PriceHistory[]
+  predictions      ProductPrediction[]
+
+  @@map("products")
+}
+
+model Sale {
+  id          String   @id @default(cuid())
+  saleNumber  String   @unique
+  customerId  String?
+  salesPersonId String
+  totalAmount Decimal  @db.Decimal(10, 2)
+  discount    Decimal  @default(0) @db.Decimal(10, 2)
+  tax         Decimal  @default(0) @db.Decimal(10, 2)
+  finalAmount Decimal  @db.Decimal(10, 2)
+  paymentMethod String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  salesPerson   User         @relation(fields: [salesPersonId], references: [id])
+  customer      Customer?    @relation(fields: [customerId], references: [id])
+  saleItems     SaleItem[]
+  returnRequests ReturnRequest[]
+
+  @@map("sales")
+}
+
+model SaleItem {
+  id        String  @id @default(cuid())
+  saleId    String
+  productId String
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  discount  Decimal @default(0) @db.Decimal(10, 2)
+  total     Decimal @db.Decimal(10, 2)
+
+  // Relations
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("sale_items")
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?  @unique
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  sales Sale[]
+
+  @@map("customers")
+}
+
+model ReturnRequest {
+  id          String       @id @default(cuid())
+  returnNumber String      @unique
+  saleId      String
+  requestedBy String
+  reason      String
+  status      ReturnStatus @default(PENDING)
+  adminNotes  String?
+  approvedBy  String?
+  approvedAt  DateTime?
+  totalAmount Decimal      @db.Decimal(10, 2)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  sale        Sale         @relation(fields: [saleId], references: [id])
+  requester   User         @relation(fields: [requestedBy], references: [id])
+  returnItems ReturnItem[]
+
+  @@map("return_requests")
+}
+
+model ReturnItem {
+  id              String  @id @default(cuid())
+  returnRequestId String
+  productId       String
+  quantity        Int
+  reason          String?
+  condition       String?
+
+  // Relations
+  returnRequest ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+  product       Product       @relation(fields: [productId], references: [id])
+
+  @@map("return_items")
+}
+
+model StockMovement {
+  id            String          @id @default(cuid())
+  productId     String
+  type          TransactionType
+  quantity      Int
+  previousStock Int
+  newStock      Int
+  reference     String?
+  notes         String?
+  createdAt     DateTime        @default(now())
+
+  // Relations
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("stock_movements")
+}
+
+model PriceHistory {
+  id        String   @id @default(cuid())
+  productId String
+  oldPrice  Decimal  @db.Decimal(10, 2)
+  newPrice  Decimal  @db.Decimal(10, 2)
+  changedBy String
+  reason    String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("price_history")
+}
+
+model FinancialRecord {
+  id          String   @id @default(cuid())
+  type        String   // REVENUE, EXPENSE, REFUND
+  amount      Decimal  @db.Decimal(10, 2)
+  description String
+  reference   String?
+  category    String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@map("financial_records")
+}
+
+model ProductPrediction {
+  id               String   @id @default(cuid())
+  productId        String
+  predictionType   String   // DEMAND, PRICE, REORDER
+  predictedValue   Decimal  @db.Decimal(10, 2)
+  confidence       Decimal  @db.Decimal(5, 4)
+  predictionDate   DateTime
+  actualValue      Decimal? @db.Decimal(10, 2)
+  accuracy         Decimal? @db.Decimal(5, 4)
+  modelVersion     String
+  createdAt        DateTime @default(now())
+
+  // Relations
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("product_predictions")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  resource  String
+  resourceId String?
+  oldValues Json?
+  newValues Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // INFO, WARNING, ERROR, SUCCESS
+  isRead    Boolean  @default(false)
+  data      Json?
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  type      String   // STRING, NUMBER, BOOLEAN, JSON
+  category  String?
+  description String?
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}
