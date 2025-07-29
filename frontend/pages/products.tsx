@@ -43,6 +43,34 @@ export default function Products() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [addForm, setAddForm] = useState({
+    name: '',
+    description: '',
+    sku: '',
+    unitPrice: '',
+    costPrice: '',
+    wholesalePrice: '',
+    mrp: '',
+    quantity: '',
+    minStockLevel: '',
+    maxStockLevel: '',
+    categoryId: '',
+    supplierId: '',
+    productType: 'GENERAL',
+    regulatoryStatus: 'APPROVED',
+    applicationMethod: 'SPRAY',
+    toxicityLevel: 'LOW',
+    targetCrops: [],
+    applicationRate: '',
+    prehiInterval: '',
+    reentryInterval: '',
+    expiryDate: '',
+    batchNumber: '',
+    storageConditions: '',
+    safetyWarnings: '',
+  });
   const [editForm, setEditForm] = useState({
     name: '',
     description: '',
@@ -67,6 +95,8 @@ export default function Products() {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
       fetchProducts(token);
+      fetchCategories();
+      fetchSuppliers();
     } catch (err) {
       console.error('Error parsing user data:', err);
       localStorage.removeItem('token');
@@ -91,10 +121,94 @@ export default function Products() {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const result = await apiClient.getCategories();
+      if (result.success && result.data) {
+        setCategories(result.data);
+      }
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+    }
+  };
+
+  const fetchSuppliers = async () => {
+    try {
+      const result = await apiClient.getSuppliers();
+      if (result.success && result.data) {
+        setSuppliers(result.data);
+      }
+    } catch (err) {
+      console.error('Error fetching suppliers:', err);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     router.push('/login');
+  };
+
+  const handleAddProduct = async () => {
+    try {
+      const productData = {
+        ...addForm,
+        unitPrice: parseFloat(addForm.unitPrice),
+        costPrice: parseFloat(addForm.costPrice) || 0,
+        wholesalePrice: parseFloat(addForm.wholesalePrice) || null,
+        mrp: parseFloat(addForm.mrp) || null,
+        quantity: parseInt(addForm.quantity),
+        minStockLevel: parseInt(addForm.minStockLevel),
+        maxStockLevel: parseInt(addForm.maxStockLevel) || null,
+        prehiInterval: addForm.prehiInterval ? parseInt(addForm.prehiInterval) : null,
+        reentryInterval: addForm.reentryInterval ? parseInt(addForm.reentryInterval) : null,
+        expiryDate: addForm.expiryDate ? new Date(addForm.expiryDate).toISOString() : null,
+        targetCrops: addForm.targetCrops,
+      };
+
+      const result = await apiClient.createProduct(productData);
+
+      if (result.success) {
+        alert('Product added successfully!');
+        setShowAddModal(false);
+        // Reset form
+        setAddForm({
+          name: '',
+          description: '',
+          sku: '',
+          unitPrice: '',
+          costPrice: '',
+          wholesalePrice: '',
+          mrp: '',
+          quantity: '',
+          minStockLevel: '',
+          maxStockLevel: '',
+          categoryId: '',
+          supplierId: '',
+          productType: 'GENERAL',
+          regulatoryStatus: 'APPROVED',
+          applicationMethod: 'SPRAY',
+          toxicityLevel: 'LOW',
+          targetCrops: [],
+          applicationRate: '',
+          prehiInterval: '',
+          reentryInterval: '',
+          expiryDate: '',
+          batchNumber: '',
+          storageConditions: '',
+          safetyWarnings: '',
+        });
+        // Refresh products list
+        const token = localStorage.getItem('token');
+        if (token) {
+          fetchProducts(token);
+        }
+      } else {
+        alert(result.message || 'Failed to add product');
+      }
+    } catch (err) {
+      alert('Network error while adding product');
+    }
   };
 
   const handleEditProduct = (product: Product) => {
@@ -468,6 +582,364 @@ export default function Products() {
                 >
                   Update Product
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Product Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Add New Agricultural Product</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Basic Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Product Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={addForm.name}
+                      onChange={(e) => setAddForm({...addForm, name: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      SKU *
+                    </label>
+                    <input
+                      type="text"
+                      value={addForm.sku}
+                      onChange={(e) => setAddForm({...addForm, sku: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={addForm.description}
+                    onChange={(e) => setAddForm({...addForm, description: e.target.value})}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                </div>
+
+                {/* Category and Supplier */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Category *
+                    </label>
+                    <select
+                      value={addForm.categoryId}
+                      onChange={(e) => setAddForm({...addForm, categoryId: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      required
+                    >
+                      <option value="">Select Category</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Supplier
+                    </label>
+                    <select
+                      value={addForm.supplierId}
+                      onChange={(e) => setAddForm({...addForm, supplierId: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    >
+                      <option value="">Select Supplier</option>
+                      {suppliers.map((supplier) => (
+                        <option key={supplier.id} value={supplier.id}>
+                          {supplier.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Pricing */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Cost Price *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={addForm.costPrice}
+                      onChange={(e) => setAddForm({...addForm, costPrice: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Unit Price *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={addForm.unitPrice}
+                      onChange={(e) => setAddForm({...addForm, unitPrice: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Wholesale Price
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={addForm.wholesalePrice}
+                      onChange={(e) => setAddForm({...addForm, wholesalePrice: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      MRP
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={addForm.mrp}
+                      onChange={(e) => setAddForm({...addForm, mrp: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Stock Information */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Quantity *
+                    </label>
+                    <input
+                      type="number"
+                      value={addForm.quantity}
+                      onChange={(e) => setAddForm({...addForm, quantity: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Min Stock Level *
+                    </label>
+                    <input
+                      type="number"
+                      value={addForm.minStockLevel}
+                      onChange={(e) => setAddForm({...addForm, minStockLevel: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Max Stock Level
+                    </label>
+                    <input
+                      type="number"
+                      value={addForm.maxStockLevel}
+                      onChange={(e) => setAddForm({...addForm, maxStockLevel: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Agricultural Specific Fields */}
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Agricultural Information</h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Product Type
+                      </label>
+                      <select
+                        value={addForm.productType}
+                        onChange={(e) => setAddForm({...addForm, productType: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      >
+                        <option value="GENERAL">General</option>
+                        <option value="PESTICIDE">Pesticide</option>
+                        <option value="FERTILIZER">Fertilizer</option>
+                        <option value="HERBICIDE">Herbicide</option>
+                        <option value="FUNGICIDE">Fungicide</option>
+                        <option value="INSECTICIDE">Insecticide</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Application Method
+                      </label>
+                      <select
+                        value={addForm.applicationMethod}
+                        onChange={(e) => setAddForm({...addForm, applicationMethod: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      >
+                        <option value="SPRAY">Spray</option>
+                        <option value="GRANULAR">Granular</option>
+                        <option value="LIQUID">Liquid</option>
+                        <option value="POWDER">Powder</option>
+                        <option value="BROADCAST">Broadcast</option>
+                        <option value="FOLIAR">Foliar</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Toxicity Level
+                      </label>
+                      <select
+                        value={addForm.toxicityLevel}
+                        onChange={(e) => setAddForm({...addForm, toxicityLevel: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      >
+                        <option value="LOW">Low</option>
+                        <option value="MODERATE">Moderate</option>
+                        <option value="HIGH">High</option>
+                        <option value="EXTREMELY_HIGH">Extremely High</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Application Rate
+                      </label>
+                      <input
+                        type="text"
+                        value={addForm.applicationRate}
+                        onChange={(e) => setAddForm({...addForm, applicationRate: e.target.value})}
+                        placeholder="e.g., 2-3 ml per liter"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Batch Number
+                      </label>
+                      <input
+                        type="text"
+                        value={addForm.batchNumber}
+                        onChange={(e) => setAddForm({...addForm, batchNumber: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Expiry Date
+                      </label>
+                      <input
+                        type="date"
+                        value={addForm.expiryDate}
+                        onChange={(e) => setAddForm({...addForm, expiryDate: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Pre-harvest Interval (days)
+                      </label>
+                      <input
+                        type="number"
+                        value={addForm.prehiInterval}
+                        onChange={(e) => setAddForm({...addForm, prehiInterval: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Safety Warnings
+                    </label>
+                    <textarea
+                      value={addForm.safetyWarnings}
+                      onChange={(e) => setAddForm({...addForm, safetyWarnings: e.target.value})}
+                      rows={2}
+                      placeholder="Safety precautions and warnings"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Storage Conditions
+                    </label>
+                    <textarea
+                      value={addForm.storageConditions}
+                      onChange={(e) => setAddForm({...addForm, storageConditions: e.target.value})}
+                      rows={2}
+                      placeholder="Storage requirements and conditions"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-4 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddProduct}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  >
+                    Add Product
+                  </button>
+                </div>
               </div>
             </div>
           </div>

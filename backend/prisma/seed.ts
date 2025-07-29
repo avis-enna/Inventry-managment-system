@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole, ProductStatus } from '@prisma/client';
+import { PrismaClient, UserRole, ProductStatus, ProductType, RegulatoryStatus, ApplicationMethod, ToxicityLevel, CropType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -221,6 +221,66 @@ async function main() {
   }
 
   console.log('✅ System settings created');
+
+  // Create pesticide and fertilizer categories
+  const pesticideCategory = await prisma.category.upsert({
+    where: { name: 'Pesticides' },
+    update: {},
+    create: { name: 'Pesticides', description: 'Chemical pest control products' },
+  });
+
+  const fertilizerCategory = await prisma.category.upsert({
+    where: { name: 'Fertilizers' },
+    update: {},
+    create: { name: 'Fertilizers', description: 'Soil nutrients and plant food' },
+  });
+
+  const herbicideCategory = await prisma.category.upsert({
+    where: { name: 'Herbicides' },
+    update: {},
+    create: { name: 'Herbicides', description: 'Weed control products' },
+  });
+
+  const fungicideCategory = await prisma.category.upsert({
+    where: { name: 'Fungicides' },
+    update: {},
+    create: { name: 'Fungicides', description: 'Fungal disease control' },
+  });
+
+  // Create specialized suppliers
+  let agriChemSupplier = await prisma.supplier.findFirst({
+    where: { name: 'AgriChem Industries' }
+  });
+
+  if (!agriChemSupplier) {
+    agriChemSupplier = await prisma.supplier.create({
+      data: {
+        name: 'AgriChem Industries',
+        email: 'contact@agrichem.com',
+        phone: '+1-555-0101',
+        address: '123 Industrial Blvd, Chemical City, CC 12345',
+        contactPerson: 'Dr. Sarah Johnson',
+      },
+    });
+  }
+
+  let greenGrowSupplier = await prisma.supplier.findFirst({
+    where: { name: 'GreenGrow Fertilizers' }
+  });
+
+  if (!greenGrowSupplier) {
+    greenGrowSupplier = await prisma.supplier.create({
+      data: {
+        name: 'GreenGrow Fertilizers',
+        email: 'sales@greengrow.com',
+        phone: '+1-555-0102',
+        address: '456 Farm Road, Nutrient Valley, NV 67890',
+        contactPerson: 'Mike Thompson',
+      },
+    });
+  }
+
+  console.log('✅ Agricultural categories and suppliers created');
 
   console.log('🎉 Database seeding completed successfully!');
   console.log('\n📋 Default login credentials:');

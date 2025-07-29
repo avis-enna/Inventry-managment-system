@@ -1,0 +1,19 @@
+{
+  "product_id": "PEST-001",
+  "prediction_type": "reorder_point",
+  "current_stock": 45,
+  "recommended_reorder_point": 75,
+  "recommended_order_quantity": 150,
+  "confidence": 0.82,
+  "lead_time_days": 14,
+  "safety_stock": 25,
+  "avg_daily_demand": 8.5,
+  "days_until_reorder": 3.5,
+  "seasonal_factor": 1.5,
+  "prediction_date": "2024-07-28T10:30:00Z",
+  "recommendations": [
+    "⚠️ URGENT: Stock level is at or below reorder point. Place order immediately.",
+    "Consider expedited shipping due to regulatory approval times.",
+    "🌱 Spring season: Consider increasing order quantities for peak demand."
+  ]
+}
